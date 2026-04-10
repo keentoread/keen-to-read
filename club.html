@@ -322,11 +322,13 @@ async function loadLeaderboard(myName){
   let users=[];
 
   snap.forEach(doc=>{
-    const d = doc.data();
-    users.push({
-      name:(d.name||"").toUpperCase(),
-      total:d.totalPages||0
-    });
+const lvlData = getLevel(total);
+
+users.push({
+  name:(d.name||"").toUpperCase(),
+  total: total,
+  lvl: lvlData
+});
   });
 
   users.sort((a,b)=>b.total-a.total);
