@@ -315,33 +315,6 @@ onAuthStateChanged(auth, async user=>{
   loadLeaderboard(name);
 });
 
-async function loadLeaderboard(myName){
-
-  const snap = await getDocs(collection(db,"users"));
-
-  let users=[];
-
-  snap.forEach(doc=>{
-const lvlData = getLevel(total);
-
-users.push({
-  name:(d.name||"").toUpperCase(),
-  total: total,
-  lvl: lvlData
-});
-  });
-
-  users.sort((a,b)=>b.total-a.total);
-
-  document.getElementById("rank").innerText =
-    "#"+(users.findIndex(u=>u.name===myName)+1);
-
-  let html="";
-
-  users.slice(0,10).forEach((u,i)=>{
-
-    const lvl=getLevel(u.total);
-
 function getRankEmoji(i){
   if(i===0) return "🥇";
   if(i===1) return "🥈";
@@ -355,22 +328,24 @@ async function loadLeaderboard(myName){
 
   let users=[];
 
-  snap.forEach(doc=>{
-    const d = doc.data();
-    const total = d.totalPages||0;
+  snap.forEach(docSnap=>{
+    const d = docSnap.data();
+    const total = d.totalPages || 0;
     const lvl = getLevel(total);
 
     users.push({
       name:(d.name||"").toUpperCase(),
-      total,
-      lvl
+      total: total,
+      lvl: lvl
     });
   });
 
   users.sort((a,b)=>b.total-a.total);
 
+  const myRank = users.findIndex(u=>u.name===myName) + 1;
+
   document.getElementById("rank").innerText =
-    "#"+(users.findIndex(u=>u.name===myName)+1);
+    myRank > 0 ? "#"+myRank : "-";
 
   let html="";
 
@@ -385,7 +360,7 @@ async function loadLeaderboard(myName){
       <div>
         <div class="lb-name">${u.name}</div>
         <div class="lb-level">
-          LEVEL ${u.lvl?.lvl || 1} • ${u.lvl.emoji} ${u.lvl.name}
+          LEVEL ${u.lvl.lvl} • ${u.lvl.emoji} ${u.lvl.name}
         </div>
       </div>
 
