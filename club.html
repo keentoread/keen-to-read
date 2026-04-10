@@ -385,7 +385,7 @@ async function loadLeaderboard(myName){
       <div>
         <div class="lb-name">${u.name}</div>
         <div class="lb-level">
-          LEVEL ${u.lvl.lvl} • ${u.lvl.emoji} ${u.lvl.name}
+          LEVEL ${u.lvl?.lvl || 1} • ${u.lvl.emoji} ${u.lvl.name}
         </div>
       </div>
 
