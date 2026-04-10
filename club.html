@@ -201,25 +201,47 @@ body{
   margin:0 auto;   /* 🔥 จัดกลาง */
 }
 
-  /* 🔥 LEADERBOARD NEW */
-.lb-card{
-  background:#faf8f5;
-  border-radius:16px;
-  padding:16px;
-  margin-bottom:12px;
-
+ .lb-card{
   display:flex;
   justify-content:space-between;
   align-items:center;
+
+  padding:14px 0;
+  border-bottom:1px solid #e5ddd5;
+}
+
+/* คนสุดท้ายไม่มีเส้น */
+.lb-card:last-child{
+  border-bottom:none;
 }
 
 /* highlight ตัวเอง */
 .lb-card.me{
   border:2px solid #6f4e37;
-  background:#fffdf9;
+  border-radius:12px;
+  padding:14px;
 }
 
 /* LEFT */
+.lb-left{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+}
+
+/* RANK */
+.lb-rank{
+  font-family:'Bebas Neue';
+  font-size:40px;
+  line-height:1;
+}
+
+/* TEXT */
+.lb-text{
+  display:flex;
+  flex-direction:column;
+}
+
 .lb-name{
   font-family:'Bebas Neue';
   font-size:22px;
@@ -229,16 +251,9 @@ body{
 .lb-level{
   font-size:11px;
   opacity:0.6;
-  margin-top:4px;
 }
 
 /* RIGHT */
-.lb-rank{
-  font-family:'Bebas Neue';
-  font-size:34px;
-  text-align:right;
-}
-
 .lb-pages{
   font-family:'Bebas Neue';
   font-size:28px;
@@ -251,7 +266,7 @@ body{
   font-family:'Inter';
   opacity:0.5;
 }
-
+  
 </style>
 
 <script type="module">
@@ -354,29 +369,34 @@ async function loadLeaderboard(myName){
     const isMe = u.name === myName;
     const emoji = getRankEmoji(i);
 
-    html += `
-    <div class="lb-card ${isMe ? 'me' : ''}">
+  html += `
+<div class="lb-card ${isMe ? 'me' : ''}">
 
-      <div>
-        <div class="lb-name">${u.name}</div>
-        <div class="lb-level">
-          LEVEL ${u.lvl.lvl} • ${u.lvl.emoji} ${u.lvl.name}
-        </div>
-      </div>
-
-      <div>
-        <div class="lb-rank">
-          #${i+1} ${emoji}
-        </div>
-
-        <div class="lb-pages">
-          ${u.total}
-          <span>PAGES</span>
-        </div>
-      </div>
-
+  <div class="lb-left">
+    
+    <div class="lb-rank">
+      #${i+1}
     </div>
-    `;
+
+    <div class="lb-text">
+      <div class="lb-name">
+        ${u.name} ${emoji}
+      </div>
+      <div class="lb-level">
+        LEVEL ${u.lvl.lvl} • ${u.lvl.name}
+      </div>
+    </div>
+
+  </div>
+
+  <div class="lb-pages">
+    ${u.total}
+    <span>PAGES</span>
+  </div>
+
+</div>
+`;
+    
   });
 
   document.getElementById("list").innerHTML = html;
@@ -456,7 +476,7 @@ window.closePopup=()=>{
 </div>
 
 <div class="section-title">Leaderboard</div>
-<div class="card" id="list"></div>
+<div id="list"></div>
 
 <div id="popup" class="popup">
   <div class="popup-card">
