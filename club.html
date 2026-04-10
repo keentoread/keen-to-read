@@ -279,6 +279,13 @@ body{
   font-family:'Inter';
   opacity:0.5;
 }
+
+.progress-text{
+  text-align:center;
+  font-size:11px;
+  margin-top:6px;
+  letter-spacing:0.5px;
+}
   
 </style>
 
@@ -337,8 +344,13 @@ onAuthStateChanged(auth, async user=>{
   let percent = ((total-cur)/(next-cur))*100;
 
   document.getElementById("bar").style.width = percent+"%";
-  document.getElementById("progressText").innerText =
-    lvl.lvl===10 ? "MAX LEVEL" : Math.floor(percent)+"% TO NEXT LEVEL";
+
+  const remain = next - total;
+
+document.getElementById("progressText").innerText =
+  lvl.lvl===10
+    ? "MAX LEVEL"
+    : `${Math.floor(percent)}% TO NEXT LEVEL • ${remain} PAGES MORE`;
 
   loadLeaderboard(name);
 });
