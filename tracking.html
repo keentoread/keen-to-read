@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>Tracking - Keen to Read</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;600&family=Italianno&display=swap" rel="stylesheet">
+
+<style>
+body{
+  background:#f5efe6;
+  color:#3e2c23;
+  font-family:'Inter';
+  padding:20px;
+  text-align:center;
+}
+
+.title {
+  font-family:'Bebas Neue';
+  font-size:50px;
+}
+
+.sub {
+  font-family:'Italianno', cursive;
+  font-size:22px;
+  margin-top:0px;
+  margin-bottom:25px;
+  opacity:0.8;
+}
+
+.form-box{
+  max-width:320px;
+  margin:0 auto 30px;
+  text-align:left;
+}
+
+.form-title{
+  font-size:11px;
+  opacity:0.5;
+  margin:12px 0 6px;
+}
+
+input{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #e5e0d8;
+  background:#faf8f5;
+  box-sizing:border-box;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:20px;
+  background:#6f4e37;
+  color:white;
+  cursor:pointer;
+  margin-top:14px;
+   /* 🔥 ใส่อันนี้ */
+}
+
+.status{
+  margin-top:10px;
+  font-size:12px;
+  opacity:0.7;
+}
+
+.table{
+  margin-top:25px;
+  width:100%;
+  max-width:340px;
+  margin:auto;
+  border-collapse:collapse;
+}
+
+.table th{
+  font-size:12px;
+  opacity:0.5;
+  padding:8px;
+  border-bottom:1px solid #e5e0d8;
+}
+
+.table td{
+  padding:12px 6px;
+  font-size:12px;
+  border-bottom:1px solid #f0ebe5;
+}
+
+.edit-input{
+  width:60px;
+  padding:6px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  text-align:center;
+  font-size:12px;
+}
+
+.delete-btn{
+  cursor:pointer;
+  font-size:14px;
+  opacity:0.6;
+}
+
+.delete-btn:hover{
+  opacity:1;
+}
+
+.delete-mark{
+  opacity:0.2;
+}
+
+</style>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDPn-v1VGU3k6sOifYIZxR89POfn8Ox6ok",
+  authDomain: "keen-to-read.firebaseapp.com",
+  projectId: "keen-to-read"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let userId;
+let cache = [];
+
+let readInput, dateInput, status, tbody;
+
+// 🔥 EDIT SYSTEM
+let isEditing = false;
+let temp = {};
+let deleteQueue = new Set();
+
+// INIT
+window.addEventListener("DOMContentLoaded",()=>{
+
+  readInput = document.getElementById("readInput");
+  dateInput = document.getElementById("dateInput");
+  status = document.getElementById("status");
+  tbody = document.getElementById("tbody");
+
+  const today = new Date().toISOString().split("T")[0];
+  dateInput.value = today;
+  dateInput.max = today;
+
+});
+
+// AUTH
+onAuthStateChanged(auth, async (user) => {
+
+  if(!user){
+    window.location.href = "index.html";
+    return;
+  }
+
+  userId = user.uid;
+  loadData();
+
+});
+
+// ADD
+window.save = async function(){
+
+  try{
+
+    if(!userId){
+      status.innerText = "User not ready";
+      return;
+    }
+
+    const read = parseInt(readInput.value)||0;
+    const date = dateInput.value;
+
+    if(!read){
+      return status.innerText = "Enter pages";
+    }
+
+    status.innerText="Saving...";
+
+    await addDoc(collection(db,"logs"),{
+      userId,
+      read,
+      createdAt: new Date(date + "T00:00:00")
+    });
+
+    await recalcTotal();
+
+    readInput.value="";
+    status.innerText="Saved ✓";
+
+    loadData();
+
+  }catch(e){
+    console.error(e);
+    status.innerText = "Error";
+  }
+};
+
+// 🔥 LOAD
+async function loadData(){
+
+  const q = query(
+    collection(db,"logs"),
+    where("userId","==",userId)
+  );
+
+  const snapshot = await getDocs(q);
+
+  cache = [];
+
+  snapshot.forEach(docSnap=>{
+    cache.push({id: docSnap.id, ...docSnap.data()});
+  });
+
+  cache.sort((a,b)=> b.createdAt.seconds - a.createdAt.seconds);
+
+  render();
+}
+
+// 🔥 RENDER (รองรับ edit)
+function getDate(d){
+  return new Date(d.seconds*1000);
+}
+
+function render(){
+
+  let html="";
+
+  cache.forEach(item=>{
+
+    const date = getDate(item.createdAt);
+    const deleted = deleteQueue.has(item.id);
+
+    html+=`
+    <tr class="${deleted ? 'delete-mark':''}">
+      <td>${date.toLocaleDateString()}</td>
+
+      <td>
+        ${isEditing
+          ? `<input class="edit-input" value="${item.read}" onchange="tempEdit('${item.id}',this.value)">`
+          : item.read}
+      </td>
+
+      <td>
+        ${isEditing
+          ? `<span class="delete-btn" onclick="markDelete('${item.id}')">✕</span>`
+          : ''}
+      </td>
+    </tr>
+    `;
+  });
+
+  tbody.innerHTML = html;
+}
+
+// 🔥 EDIT FUNCTIONS
+window.toggleEdit = function(){
+
+  const editBtn = document.getElementById("editBtn");
+  const cancelBtn = document.getElementById("cancelBtn");
+
+  if(!isEditing){
+    isEditing = true;
+    editBtn.innerText = "SAVE";
+    cancelBtn.style.display = "block";
+  }else{
+    saveAll();
+  }
+
+  render();
+};
+
+window.tempEdit = function(id,value){
+  if(!temp[id]) temp[id]={};
+  temp[id].read = Math.max(0, parseInt(value)||0);
+};
+
+window.markDelete = function(id){
+  deleteQueue.has(id)
+    ? deleteQueue.delete(id)
+    : deleteQueue.add(id);
+
+  render();
+};
+
+// 🔥 SAVE ALL (update + delete + recalc total)
+async function saveAll(){
+
+  status.innerText="Saving...";
+
+  for(const id in temp){
+    await updateDoc(doc(db,"logs",id), temp[id]);
+  }
+
+  for(const id of deleteQueue){
+    await deleteDoc(doc(db,"logs",id));
+  }
+
+  temp={};
+  deleteQueue.clear();
+  isEditing=false;
+
+  document.getElementById("editBtn").innerText="EDIT";
+  document.getElementById("cancelBtn").style.display="none";
+
+  await recalcTotal();
+
+  status.innerText="Updated ✓";
+
+  loadData();
+}
+
+// CANCEL
+window.cancelEdit = function(){
+
+  isEditing=false;
+  temp={};
+  deleteQueue.clear();
+
+  document.getElementById("editBtn").innerText="EDIT";
+  document.getElementById("cancelBtn").style.display="none";
+
+  render();
+};
+
+// 🔥 RECALCULATE TOTAL (สำคัญมาก)
+async function recalcTotal(){
+
+  const snapshot = await getDocs(
+    query(collection(db,"logs"), where("userId","==",userId))
+  );
+
+  let total = 0;
+
+  snapshot.forEach(doc=>{
+    total += doc.data().read || 0;
+  });
+
+  await setDoc(doc(db,"users",userId),{
+    totalPages: total
+  }, { merge:true });
+
+}
+</script>
+
+</head>
+
+<body>
+
+<div class="title">KEEN TO READ</div>
+<div class="sub">Book Club</div>
+
+<div class="form-box">
+
+  <div class="form-title">DATE</div>
+  <input id="dateInput" type="date">
+
+  <div class="form-title">PAGES</div>
+  <input id="readInput" type="number" placeholder="Pages read">
+
+  <button onclick="save()">ADD READING</button>
+
+  <div id="status" class="status"></div>
+
+</div>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Pages</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
+
+<div style="max-width:320px;margin:20px auto;display:flex;gap:10px;">
+  <button id="cancelBtn" style="display:none;background:#d6ccc2;color:#3e2c23;" onclick="cancelEdit()">CANCEL</button>
+  <button id="editBtn" onclick="toggleEdit()">EDIT</button>
+</div>
+
+<div style="margin-top:20px;">
+  <div onclick="window.location.href='home.html'" style="
+    font-size:9px;
+    color:#6f4e37;
+    cursor:pointer;
+    opacity:0.7;
+  ">
+    ← BACK TO HOME
+  </div>
+</div>
+
+</body>
+</html>

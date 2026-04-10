@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<title>Club - Keen to Read</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;600&family=Italianno&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  background:#f5efe6;
+  color:#3e2c23;
+  font-family:'Inter';
+  padding:20px;
+}
+
+/* LOGO */
+.logo{
+  text-align:center;
+}
+.logo .main{
+  font-family:'Bebas Neue';
+  font-size:36px;
+}
+
+.sub {
+  font-family:'Italianno', cursive;
+  font-size:20px;
+  margin-top:0px;
+  margin-bottom:20px;
+  opacity:0.8;
+}
+
+/* CARD */
+.card{
+  background:white;
+  border-radius:18px;
+  padding:20px;
+  margin-bottom:20px;
+}
+
+/* HEADER */
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+}
+
+.name{
+  font-size:25px;
+  font-weight:600;
+}
+
+.level{
+  font-size:12px;
+  opacity:0.7;
+  margin-top:4px;
+}
+
+/* 🔥 RANK ใหญ่ขึ้น */
+.rank{
+  font-family:'Bebas Neue';
+  font-size:60px;
+}
+
+/* STAT */
+.stat{
+  text-align:center;
+  margin-top:10px;
+}
+
+.stat-label{
+  font-size:11px;
+  opacity:0.5;
+}
+
+/* 🔥 PAGES ใหญ่ขึ้น */
+.stat-value{
+  font-family:'Bebas Neue';
+  font-size:60px;
+}
+
+.stat-unit{
+  font-size:11px;
+  opacity:0.5;
+  margin-top:-6px;
+}
+
+/* PROGRESS */
+.progress{
+  margin-top:15px;
+}
+
+.progress-bar-bg{
+  height:10px;
+  background:#e5ddd5;
+  border-radius:10px;
+}
+
+.progress-bar{
+  height:100%;
+  width:0%;
+  background:#6f4e37;
+  border-radius:10px;
+}
+
+.progress-text{
+  text-align:center;
+  font-size:11px;
+  margin-top:6px;
+}
+
+/* BUTTON */
+.btn{
+  width:100%;
+  margin-top:15px;
+  padding:12px;
+  border:none;
+  border-radius:20px;
+  background:#6f4e37;
+  color:white;
+  cursor:pointer;
+}
+
+/* TITLE */
+.section-title{
+  font-family:'Bebas Neue';
+  font-size:25px;
+  margin-bottom:10px;
+}
+
+/* TABLE */
+.row{
+  display:flex;
+  justify-content:space-between;
+  padding:12px 0;
+  border-bottom:1px solid #eee;
+  font-size:14px;
+}
+
+.row:last-child{
+  border-bottom:none;
+}
+
+/* 🔥 highlight แบบไม่พัง layout */
+.me{
+  font-weight:700;
+}
+
+/* POPUP */
+.popup{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.4);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:999; /* 🔥 เพิ่ม */
+}
+
+.popup .row{
+  font-size:12px;
+}
+
+.popup-card{
+  background:white;
+  font-size:12px;
+  padding:20px;
+  border-radius:16px;
+  width:90%;
+  max-width:320px;
+  max-height:80vh;
+  overflow:auto;
+  box-shadow:0 20px 40px rgba(0,0,0,0.15);
+}
+
+.back-wrap{
+  position:relative;
+  z-index:1;
+}
+
+.close{
+  text-align:right;
+  font-size:13px;
+  cursor:pointer;
+  opacity:0.6;
+  margin-bottom:10px;
+}
+
+.container{
+  width:100%;
+  max-width:380px; /* 🔥 สำคัญ */
+  margin:0 auto;   /* 🔥 จัดกลาง */
+}
+
+</style>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDPn-v1VGU3k6sOifYIZxR89POfn8Ox6ok",
+  authDomain: "keen-to-read.firebaseapp.com",
+  projectId: "keen-to-read"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+function getLevel(total){
+  if(total>=10000)return {lvl:10,name:"Master Reader",emoji:"🎓"};
+  if(total>=8000)return {lvl:9,name:"Wisdom Keeper",emoji:"📚"};
+  if(total>=5000)return {lvl:8,name:"Literary Mind",emoji:"📖"};
+  if(total>=3000)return {lvl:7,name:"Insight Reader",emoji:"📓"};
+  if(total>=1800)return {lvl:6,name:"Knowledge Builder",emoji:"📙"};
+  if(total>=1000)return {lvl:5,name:"Deep Reader",emoji:"📘"};
+  if(total>=600)return {lvl:4,name:"Book Hunter",emoji:"📗"};
+  if(total>=300)return {lvl:3,name:"Story Seeker",emoji:"📕"};
+  if(total>=100)return {lvl:2,name:"First Chapter",emoji:"📄"};
+  return {lvl:1,name:"New Reader",emoji:"🐣"};
+}
+
+const steps=[0,100,300,600,1000,1800,3000,5000,8000,10000];
+
+onAuthStateChanged(auth, async user=>{
+
+  if(!user){
+    window.location.href="index.html";
+    return;
+  }
+
+  const snap = await getDoc(doc(db,"users",user.uid));
+  const data = snap.data();
+
+  const total = data.totalPages || 0;
+  const name = (data.name||"").toUpperCase();
+  const lvl = getLevel(total);
+
+  document.getElementById("name").innerText = name;
+  document.getElementById("level").innerText =
+    `${lvl.emoji} ${lvl.name}`;
+
+  document.getElementById("pages").innerText = total;
+
+  let cur = steps[lvl.lvl-1];
+  let next = steps[lvl.lvl] || cur;
+  let percent = ((total-cur)/(next-cur))*100;
+
+  document.getElementById("bar").style.width = percent+"%";
+  document.getElementById("progressText").innerText =
+    lvl.lvl===10 ? "MAX LEVEL" : Math.floor(percent)+"% TO NEXT LEVEL";
+
+  loadLeaderboard(name);
+});
+
+async function loadLeaderboard(myName){
+
+  const snap = await getDocs(collection(db,"users"));
+
+  let users=[];
+
+  snap.forEach(doc=>{
+    const d = doc.data();
+    users.push({
+      name:(d.name||"").toUpperCase(),
+      total:d.totalPages||0
+    });
+  });
+
+  users.sort((a,b)=>b.total-a.total);
+
+  document.getElementById("rank").innerText =
+    "#"+(users.findIndex(u=>u.name===myName)+1);
+
+  let html="";
+
+  users.slice(0,10).forEach((u,i)=>{
+
+    const lvl=getLevel(u.total);
+
+    html+=`
+      <div class="row ${u.name===myName?"me":""}">
+        <div>${i+1}. ${u.name} • ${lvl.emoji}</div>
+        <div>${u.total} pages</div>
+      </div>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
+}
+
+// 🔥 POPUP DATA FIXED
+window.openLevels=()=>{
+  const levels=[
+    ["🐣 New Reader",0],
+    ["📄 First Chapter",100],
+    ["📕 Story Seeker",300],
+    ["📗 Book Hunter",600],
+    ["📘 Deep Reader",1000],
+    ["📙 Knowledge Builder",1800],
+    ["📓 Insight Reader",3000],
+    ["📖 Literary Mind",5000],
+    ["📚 Wisdom Keeper",8000],
+    ["🎓 Master Reader",10000]
+  ];
+
+  let html="";
+
+  levels.forEach((l,i)=>{
+    html+=`
+      <div class="row">
+        <div>Level ${i+1} • ${l[0]}</div>
+        <div>${l[1]}+ pages</div>
+      </div>
+    `;
+  });
+
+  document.getElementById("levels").innerHTML=html;
+  document.getElementById("popup").style.display="flex";
+}
+
+window.closePopup=()=>{
+  document.getElementById("popup").style.display="none";
+}
+</script>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="logo">
+  <div class="main">KEEN TO READ</div>
+  <div class="sub">Book Club</div>
+</div>
+
+<div class="section-title">Your Progress</div>
+<div class="card">
+
+  <div class="header">
+    <div>
+      <div id="name" class="name"></div>
+      <div id="level" class="level"></div>
+    </div>
+    <div id="rank" class="rank">#0</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">i’ve read</div>
+    <div id="pages" class="stat-value">0</div>
+    <div class="stat-unit">pages</div>
+  </div>
+
+  <div class="progress">
+    <div class="progress-bar-bg">
+      <div id="bar" class="progress-bar"></div>
+    </div>
+    <div id="progressText" class="progress-text"></div>
+  </div>
+
+  <button class="btn" onclick="openLevels()">View Levels</button>
+
+</div>
+
+<div class="section-title">Leaderboard</div>
+<div class="card" id="list"></div>
+
+<div id="popup" class="popup">
+  <div class="popup-card">
+    <div class="close" onclick="closePopup()">Close ✕</div>
+    <div class="section-title">Levels</div>
+    <div id="levels"></div>
+  </div>
+</div>
+
+<div style="margin-top:20px; text-align:center;">
+  <div onclick="window.location.href='home.html'" style="
+    display:inline-block;
+    font-size:10px;
+    color:#6f4e37;
+    cursor:pointer;
+    opacity:0.7;
+  ">
+    ← BACK TO HOME
+  </div>
+</div>
+</div>
+
+</body>
+</html>

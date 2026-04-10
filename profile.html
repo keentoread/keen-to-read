@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<title>Profile - Keen to Read</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=Italianno&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  background:#f5efe6;
+  font-family:'Inter';
+  color:#3e2c23;
+  display:flex;
+  justify-content:center;
+}
+
+.container{
+  width:100%;
+  max-width:360px;
+  padding:20px;
+}
+
+/* LOGO */
+.logo{
+  text-align:center;
+  margin-bottom:20px;
+}
+.logo .main{
+  font-family:'Bebas Neue';
+  font-size:38px;
+  letter-spacing:2px;
+}
+.logo .sub{
+  font-family:'Italianno', cursive;
+  font-size:20px;
+  margin-top:-10px;
+  opacity:0.7;
+}
+
+/* SECTION */
+.section{
+  margin-bottom:18px;
+}
+.label{
+  font-size:11px;
+  opacity:0.5;
+  margin-bottom:4px;
+}
+.value{
+  font-size:14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+/* EDIT */
+.edit{
+  font-size:11px;
+  opacity:0.6;
+  cursor:pointer;
+}
+
+/* INPUT */
+input{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #e5e0d8;
+  background:#faf8f5;
+  box-sizing:border-box;
+}
+
+/* BUTTON */
+.btn{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:20px;
+  background:#6f4e37;
+  color:white;
+  margin-top:10px;
+  cursor:pointer;
+}
+
+.danger{
+  background:#d66;
+}
+
+/* TEXT BTN */
+.text-btn{
+  text-align:center;
+  margin-top:10px;
+  font-size:8px;
+  opacity:0.6;
+  cursor:pointer;
+}
+</style>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  signOut,
+  deleteUser
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  updateDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDPn-v1VGU3k6sOifYIZxR89POfn8Ox6ok",
+  authDomain: "keen-to-read.firebaseapp.com",
+  projectId: "keen-to-read"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let userId;
+let editing = false;
+
+// LOAD
+onAuthStateChanged(auth, async (user)=>{
+
+  if(!user){
+    window.location.href="index.html";
+    return;
+  }
+
+  userId = user.uid;
+
+  document.getElementById("email").innerText = user.email;
+
+  const snap = await getDoc(doc(db,"users",userId));
+  const data = snap.data();
+
+  document.getElementById("name").innerText = data.name || "Reader";
+
+  const date = new Date(user.metadata.creationTime);
+document.getElementById("since").innerText =
+  date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+
+});
+
+// EDIT / SAVE
+window.editName = function(){
+
+  const btn = document.getElementById("editBtn");
+
+  if(!editing){
+
+    const current = document.getElementById("name").innerText;
+
+    document.getElementById("nameBox").innerHTML =
+      `<input id="nameInput" value="${current}" onkeydown="if(event.key==='Enter') editName()">`;
+
+    btn.innerText = "SAVE";
+    editing = true;
+
+  }else{
+
+    saveName();
+    btn.innerText = "EDIT";
+    editing = false;
+
+  }
+};
+
+async function saveName(){
+
+  const newName = document.getElementById("nameInput").value.trim();
+
+  if(!newName) return;
+
+  await updateDoc(doc(db,"users",userId),{
+    name:newName
+  });
+
+  document.getElementById("nameBox").innerHTML =
+    `<span id="name">${newName}</span>`;
+}
+
+// RESET PASSWORD
+window.resetPassword = async function(){
+
+  const user = auth.currentUser;
+
+  await sendPasswordResetEmail(auth, user.email);
+  alert("Reset email sent");
+};
+
+// DELETE ACCOUNT
+window.deleteAccount = async function(){
+
+  if(!confirm("Are you sure? This cannot be undone.")) return;
+
+  const user = auth.currentUser;
+
+  await deleteUser(user);
+  window.location.href="index.html";
+};
+
+// LOGOUT
+window.logout = async function(){
+  await signOut(auth);
+  window.location.href="index.html";
+};
+</script>
+
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="logo">
+    <div class="main">KEEN TO READ</div>
+    <div class="sub">Book Club</div>
+  </div>
+
+  <div class="section">
+    <div class="label">NAME</div>
+    <div class="value">
+      <div id="nameBox">
+        <span id="name">...</span>
+      </div>
+      <span id="editBtn" class="edit" onclick="editName()">EDIT</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="label">E-MAIL</div>
+    <div class="value" id="email"></div>
+  </div>
+
+  <div class="section">
+    <div class="label">MEMBER SINCE</div>
+    <div class="value" id="since"></div>
+  </div>
+
+  <button class="btn" onclick="resetPassword()">
+    RESET PASSWORD
+  </button>
+
+  <button class="btn danger" onclick="deleteAccount()">
+    DELETE ACCOUNT
+  </button>
+
+  <div class="text-btn" onclick="window.location.href='home.html'">
+    ← BACK TO HOME
+  </div>
+
+</div>
+
+</body>
+</html>
